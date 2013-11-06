@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+
+<title>异步机制赋于Web开发的新手段</title>
+
+<script type="text/javascript" src="dojo.js"></script>
+<script type="text/javascript" src="raphael.js"></script>
+<script type="text/javascript" src="main.js"></script>
+<script type="text/javascript" src="frame.js"></script>
+<script type="text/javascript" src="google-code-prettify/prettify.js"></script>
+
+<script type="text/javascript" src="paint.js"></script>
+
+<link href="reset.css" type="text/css" rel="stylesheet" media="all"/>
+<link href="main.css" type="text/css" rel="stylesheet" media="all"/>
+<link href="google-code-prettify/prettify.css" type="text/css" rel="stylesheet" media="all"/>
+
+<style type="text/css">
+    #title_page h1{
+       height: 100px; 
+       line-height: 100px;
+       margin-top: 200px;
+       text-shadow: 2px 2px 2px #FFF;
+       font-size: 50px;
+       letter-spacing: 5px;
+       text-align: center;
+       background-color: #FFD600;
+    }
+
+    #index_page li{
+        font-size: 28px;
+    }
+
+</style>
+
+</head>
+<body>
+    <p class="title">异步机制赋于 Web 开发的新手段</p>
+    <p class="author">邹业盛</p>
+    <p class="email">&#x0079;<span></span>&#x0065;<span></span>&#x0073;<span></span>&#x0068;<span></span>&#x0065;<span></span>&#x006e;<span></span>&#x0067;<span></span>&#x007a;<span></span>&#x006f;<span></span>&#x0075;<span></span>&#x0040;<span></span>&#x0067;<span></span>&#x006d;<span></span>&#x0061;<span></span>&#x0069;<span></span>&#x006c;<span></span>&#x002e;<span></span>&#x0063;<span></span>&#x006f;<span></span>&#x006d;<span></span></p>
+    <p class="date">2012-04-01</p>
+
+    <div class="frame" name="" id="title_page">
+        <h1>异步机制赋于 Web 开发的新手段</h1>
+        <h2 style="text-align: center;"><span class="author"></span> / <span class="email"></span> / <span class="date"></span></h2>
+    </div>
+
+    <div class="frame" name="目录" id="index_page">
+        <ol style="margin-left: 150px;">
+            <li>什么是异步机制</li>
+            <li>使用工具简介</li>
+            <li>“全局变量”</li>
+            <li>事件循环机制</li>
+            <li>计时器</li>
+            <li>缓存</li>
+            <li>代理层</li>
+            <li>注意的问题</li>
+        </ol>
+    </div>
+
+    <div class="frame overlay" name="什么是异步机制">
+        <p>同步的情况（没有结果不会离开）</p>
+        <p style="width: 500px; margin: 15px auto;"><i>▶ ▶ 顺序，即时结果，等待，阻塞，浪费时间</i></p>
+        <p>异步的情况（安排好一切）</p>
+
+        <p style="width: 500px; margin: 15px auto;" class="overlay">
+            <i tabindex="4">▶ ▶ 并行，非即时，不等待，非阻塞，挤时间</i>
+            <i>▶ ▶ 并行，非即时，不等待，非阻塞，<b>挤时间</b></i>
+        </p>
+
+        <p>异步的两种方式：</p>
+
+        <ol class="overlay">
+            <li>事件驱动</li>
+            <li>上下文调度</li>
+        </ol>
+
+        <p><b>异步机制作用于 Web 服务器和 Web 开发框架……</b></p>
+        <p style="width: 600px; margin: 15px auto;"><i>在单个上下文环境（进程）中处理大量并发请求的能力</i></p>
+        <p style="width: 600px; margin: 15px auto;"><b>▶ ▶ 可能性……</b></p>
+
+    </div>
+
+    <div class="frame overlay" name="使用工具简介">
+        <p class="center" style="width: 43%; float: left;">
+            <span>Python</span>
+            <img src="async-img/python.jpg" width="100%"/>
+            <i>http://www.python.org</i>
+        </p>
+        <p class="center" style="width: 43%; float: right;">
+            <span>Tornado</span>
+            <img src="async-img/tornado.jpg" width="100%"/>
+            <i>http://www.tornadoweb.org</i>
+        </p>
+        <div style="clear: both;"></div>
+        <p class="center" style="width: 43%; float: left;">
+            <span>AceTest</span>
+            <img src="async-img/AceTest.jpg" width="100%"/>
+            <i>http://zouyesheng.com/AceTest.html</i>
+        </p>
+        <p class="center" style="width: 43%; float: right;">
+            <span>AceSlide</span>
+            <img src="async-img/AceSlide.jpg" width="80%"/>
+            <i>http://zouyesheng.com/AceSlide.html</i>
+        </p>
+    </div>
+
+    <div class="frame" name="“全局变量”">
+        <p>多个请求是否可以操作同一个变量……</p>
+        <pre class="prettyprint">
+GlobalVar = '' //所谓的全局变量
+class GlobalVarHandler(BaseHandler):
+
+    def get(self):
+        global GlobalVar
+        return self.write(u'现在 v 的值是: ' + GlobalVar)
+    
+    def post(self):
+        global GlobalVar
+        v = self.get_argument('v', '')
+        GlobalVar += v
+        return self.write('0')
+
+    def delete(self):
+        global GlobalVar
+        GlobalVar = ''
+        return self.write('0')
+</pre>
+    </div>
+
+    <div class="frame" name="">
+        <p>再考虑一个场景：<i>防暴力请求</i></p>
+        <p>如果一个 IP 在周期内请求次数过多，则列入黑名单，也可以外部添加黑名单。</p>
+        <pre class="prettyprint">
+class ViolenceHandler(BaseHandler):
+    '暴力请求'
+
+    count = {}
+    last = 0 //时间间隔
+
+    def get(self):
+        ip = self.get_argument('ip', '')
+        if not ip:
+            return self.write({'result': 1, 'msg': 'need a ip'})
+
+        cls = self.__class__
+        now = int(time.time())
+        if now - cls.last > 60: //60秒之内
+            cls.count = {}
+            cls.last = now
+        if ip in cls.count:
+            if cls.count[ip] > 10: //10次超过不能
+                return self.write({'result': 2, 'msg': ''})
+            else:
+                cls.count[ip] += 1
+        else:
+            cls.count[ip] = 1
+        return self.write({'result': 0, 'msg': cls.count[ip]})</pre>
+    </div>
+
+    <div class="frame" name="事件循环机制">
+        <div class="center"><img src="async-img/ioloop.jpg" /></div>
+    </div>
+
+    <div class="frame overlay" name="计时器">
+        <ul>
+            <li>cron</li>
+            <li>javascript</li>
+            <li>化同步为异步，变阻塞为非阻塞</li>
+        </ul>
+        <p>两部分内容：<b>周期循环</b> <b>延时执行</b></p>
+        <p>代替 cron 的好处：</p>
+        <ul>
+            <li>减少额外手段，利于维护</li>
+            <li>与运行时相同的上下文环境，交互方便</li>
+        </ul>
+        <p>以抓取网页数据（代理 IP 列表）为例 <i>http://www.sooip.cn/e/web/?type=rss2&classid=1</i>：</p>
+        <ul>
+            <li>抓取完分页的数据，每一页请求之间间隔 5 秒。</li>
+            <li>定时检查是否有数据更新。</li>
+            <li>对抓取的数据进行可行性检查。</li>
+            <li>检查通过的 IP 资源以服务形式对外供给数据。</li>
+        </ul>
+    </div>
+
+    <div class="frame" name="">
+    <pre class="prettyprint">
+IL = tornado.ioloop.IOLoop.instance()
+RSS_URL = 'http://www.sooip.cn/e/web/?type=rss2&classid=1'
+LINK_URL = re.compile('<link>([^<]*?)</link>')
+IP_RE = re.compile('(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3} \d{2,5}) HTTP')
+IP = []
+ALL_URL = []
+
+def fetch_rss(url, callback): //获取RSS页
+    AsyncHTTPClient().fetch(url, callback=callback)
+
+def on_rss_fetch(response): //处理RSS页
+    global ALL_URL
+    ALL_URL = LINK_URL.findall(response.body)
+    IL.add_callback(functools.partial(fetch_page,
+                                      ALL_URL.pop(), on_page_fetch))
+
+def fetch_page(url, callback): //获取某一内容页
+    AsyncHTTPClient().fetch(url, callback=callback)
+
+def on_page_fetch(response): //处理内容页
+    global ALL_URL
+    global IP
+    ip_list = IP_RE.findall(response.body)
+    IP.extend(ip_list)
+    if ALL_URL:
+        IL.add_timeout(datetime.timedelta(seconds=5),
+                       functools.partial(fetch_page,
+                                         ALL_URL.pop(), on_page_fetch))
+    else:
+        global checker
+        checker.start() //checker是一个定时器
+    </pre>
+    </div>
+
+    <div class="frame overlay" name="缓存">
+        <ul>
+            <li>memcached</li>
+            <li>缓存的维护问题</li>
+            <li>让缓存自己活动起来</li>
+        </ul>
+        <p>一个整站用户在线状态的例子：</p>
+        <ul>
+            <li>访问一个链接，传递用户名之后就算是“登陆”。</li>
+            <li>登陆时，服务器端记录一个“会话”。（<i>会话作为缓存数据处理</i>）</li>
+            <li>可以获取当前登陆的用户。（<i>缓存数据直接主动服务于应用</i>）</li>
+            <li> 1 分钟没有 ping 则自动注销。（<i>缓存的维护</i>）</li>
+        </ul>
+    </div>
+
+
+    <div class="frame" name="">
+        <pre class="prettyprint">
+class LoginHandler(BaseHandler):
+    '处理登陆'
+
+    def get(self):
+        name = self.get_argument('name', '')
+        if not name:
+            return self.write({'result': 1, 'msg': 'need a name'})
+
+        if name in SessionHandler.session:
+            IL.remove_timeout(SessionHandler.session[name])
+        print 'set session %s ...' % name
+        SessionHandler.session[name] = IL.add_timeout(datetime.timedelta(seconds=10),
+                       functools.partial(SessionHandler.remove_session, name))
+        return self.write({'result': 0, 'msg': ''})
+
+
+class SessionHandler(BaseHandler):
+    '处理会话'
+
+    session = {}
+
+    @classmethod
+    def remove_session(cls, name):
+        print 'remove session %s ...' % name
+        del cls.session[name]
+
+    def get(self):
+        return self.write({'result': 0, 'msg': '',
+                           'session': self.__class__.session.keys()})
+        </pre>
+    </div>
+
+    <div class="frame" name="代理层">
+        <ul>
+            <li>所有的请求会在服务器端汇集，并可以延迟返回。</li>
+            <li>针对时间范围内的整体的组合优化。</li>
+        </ul>
+        <p>一个与数据库查询有关的例子：<i>传递一个 ID ，获取数据库中对应的数据。</i></p>
+    </div>
+
+    <div class="frame" name="">
+        <pre class="prettyprint">
+class ProxyHandler(BaseHandler):
+    request = {}
+    @tornado.web.asynchronous
+    def get(self):
+        id = self.get_argument('id', '')
+        id = int(id)
+        cls = self.__class__
+        if not id: return self.finish({'result': 1, 'msg': 'need a id'})
+        else:
+            if id in cls.request:
+                cls.request[id].append(self)
+            else:
+                cls.request[id] = [self]
+
+class SQLTimer(tornado.ioloop.PeriodicCallback):
+    def __init__(self, callback_time):
+        super(SQLTimer, self).__init__(self.sql, callback_time)
+
+    def sql(self):
+        request = ProxyHandler.request.copy()
+        ProxyHandler.request = {}
+        ids = request.keys()
+        sql = 'select id, name from Main where id in (%s)' % (', '.join(['?'] * len(ids)))
+        c = CONN.cursor()
+        c.execute(sql, ids)
+        r = c.fetchall()
+        c.close()
+
+        for id, name in r:
+            for req in request[id]:
+                req.finish({'result': 0, 'name': name})
+        </pre>
+    </div>
+
+    <div class="frame" name="注意的问题">
+        <ul class="overlay">
+            <li>阻塞的风险，对编写者的要求。</li>
+            <li>异部风格的代码，维护与调试问题。</li>
+            <li>为利用多核，多实例之间的数据共享与同步问题。</li>
+        </ul>
+    </div>
+
+
+
+    <div class="frame" name="结束">
+        <p>Q & A</p>
+        <p><span class="author"></span> / <span class="email"></span> / <span class="date"></span></p>
+    </div>
+
+    <div class="separate" id="separate"></div>
+    <div class="toolbar" id="toolbar">
+        <ul>
+            <li id="connect" class="connect">连接</li>
+            <li id="control" class="control">控制</li>
+            <li><div id="frame_tip">
+                <span>[</span><span id="current_frame">#</span><span> / </span><span id="total_frame">#</span><span>]</span>
+                <span id="current_slice">#</span><span> / </span><span id="total_slice">#</span>
+            </div></li>
+            <li><div id="prev"></div></li>
+            <li><div id="next"></div></li>
+        </ul>
+    </div>
+
+    <div class="toc" id="toc">
+        <ol></ol>
+    </div>
+
+
+<script type="text/javascript" charset="utf-8">
+//开始
+dojo.addOnLoad(function(){
+    dojo.m.init([0, 0]);
+    //dojo.m.init([12, 0]);
+    //dojo.m.paint.init();
+    prettyPrint();
+});
+
+//计算frame的位置
+dojo.addOnLoad(function(){
+    var all_frames = dojo.query('.frame');
+    var left = (screen.width - dojo.style(all_frames[0], 'width')) / 2;
+    var top = (screen.height - dojo.style(all_frames[0], 'height')) / 2;
+    all_frames.style('left', left + 'px');
+    all_frames.style('top', top + 'px');
+});
+
+//填充相关常量
+dojo.addOnLoad(function(){
+    dojo.query('span.author').forEach(function(item){
+        item.innerHTML = dojo.m.author;
+    });
+    dojo.query('span.title').forEach(function(item){
+        item.innerHTML = dojo.m.title;
+    });
+    dojo.query('span.date').forEach(function(item){
+        item.innerHTML = dojo.m.date;
+    });
+    dojo.query('span.email').forEach(function(item){
+        item.innerHTML = dojo.m.email;
+    });
+});
+
+//为了打印，把全部的frame显示出来
+dojo.addOnLoad(function(){
+    //dojo.m.for_print();
+});
+</script>
+</body>
+</html>
